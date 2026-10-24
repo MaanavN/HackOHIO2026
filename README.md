@@ -12,12 +12,12 @@ Telegram gateway, web search and browser tools; the plugin adds the job-specific
 
 | Piece | File | What it does |
 |---|---|---|
-| Reel pipeline | `apply/reel/` | yt-dlp download → caption, uploader, comments → audio transcript → (if needed) scene-change frames → vision model → structured opportunity |
+| Reel pipeline | `apply/reel/` | instaloader download → caption, uploader bio + link, comments → audio transcript → (if needed) scene-change frames → vision model → structured opportunity |
 | Router | `apply/hooks.py` | Spots reel links and resumes in each message and points the agent at the right skill; injects a short profile summary on the first turn |
 | Profile | `apply/profile.py`, `apply/resume.py` | Resume import (PDF/DOCX/TXT), memory import, missing-field tracking |
 | Tracker | `apply/tracker.py` | SQLite table of applications and their status |
-| Tools | `apply/tools.py`, `apply/schemas.py` | `reel_analyze`, `application_save`, `application_update`, `applications_list`, `profile_get`, `profile_update`, `resume_import` |
-| Slash commands | `apply/commands.py` | `/jobs`, `/job <company>`, `/setstatus <company> <status>`, `/me`, `/import_memory` |
+| Tools | `apply/tools.py`, `apply/schemas.py` | `reel_analyze`, `reel_cleanup`, `application_save`, `application_update`, `applications_list`, `profile_get`, `profile_update`, `resume_import` |
+| Slash commands | `apply/commands.py` | `/jobs`, `/job <company>`, `/setstatus <company> <status>`, `/me`, `/import_memory`, `/resume` |
 | Skills | `apply/skills/` | Step-by-step playbooks: `reel-to-application` (find the opportunity and apply with your confirmation), `onboarding`, `interview-coach` |
 
 Finding the application page uses Hermes's built-in `web_search`/`web_extract`, and filling
@@ -38,9 +38,10 @@ accounts, enters passwords or solves CAPTCHAs: those applications get ready-to-p
    ```bash
    hermes plugins enable apply
    ```
-4. Let yt-dlp use an Instagram login. Log into a **secondary** Instagram account in a browser, then
-   set the plugin's `cookies_from_browser` setting (e.g. `chrome`) under
-   `plugins.entries.apply.settings` in `~/.hermes/config.yaml`, or `cookies_file` for a cookies.txt.
+4. Let instaloader use an Instagram login. Log into a **secondary** Instagram account in a browser,
+   then set the plugin's `cookies_from_browser` setting (e.g. `chrome`) under
+   `plugins.entries.apply.settings` in `~/.hermes/config.yaml`, or point `cookies_file` at a
+   Netscape cookies.txt. Without a login Instagram often refuses the video and never serves comments.
 5. Set up speech-to-text for transcripts (any Hermes STT provider, e.g. `pip install faster-whisper` for free local transcription).
 6. Connect Telegram by following Hermes's Telegram guide, then start the gateway.
 

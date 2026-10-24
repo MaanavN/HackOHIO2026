@@ -5,6 +5,8 @@ import logging
 
 from . import host, profile, resume, tracker
 from .reel import analyze as reel
+from .reel import download as reels
+from .storage import data_dir
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +44,8 @@ def reel_analyze(args: dict) -> str:
         caption=meta["caption"],
         uploader=meta.get("uploader_id"),
         uploader_profile_url=meta.get("uploader_profile_url"),
+        uploader_bio=meta.get("uploader_biography"),
+        uploader_bio_url=meta.get("uploader_bio_url"),
         upload_date=meta.get("upload_date"),
         comments=meta["comments"][:10],
         transcript=out["transcript"][:3000],
@@ -51,6 +55,14 @@ def reel_analyze(args: dict) -> str:
         cached=out.get("cached", False),
         already_tracked=existing,
     )
+
+
+@_safe
+def reel_cleanup(args: dict) -> str:
+    url = (args.get("url") or "").strip()
+    if not url:
+        return _err("url is required")
+    return _ok(**reels.discard(url, data_dir() / "reels"))
 
 
 @_safe

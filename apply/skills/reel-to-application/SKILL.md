@@ -19,8 +19,12 @@ Call `reel_analyze` with the URL.
 - If the download fails because Instagram wants a login, tell the user to set the plugin's
   `cookies_file` or `cookies_from_browser` setting with a secondary Instagram account.
 - If `result.confidence` is low and `frames_analyzed` is 0, call again with `force_visual: true`.
-- The creator's bio often links to the same opportunity. If nothing else works, open
-  `uploader_profile_url` with `web_extract` and look for a link-in-bio page.
+- The creator's bio often links to the same opportunity: it comes back as `uploader_bio` and
+  `uploader_bio_url`. If nothing else works, open `uploader_profile_url` with `web_extract` and
+  look for a link-in-bio page.
+
+If metadata came back with a note that comments were unavailable (no Instagram login), continue
+without them instead of asking the user to fix the cookies mid-flow.
 
 ## 2. Find the official application page
 
@@ -31,7 +35,9 @@ Call `reel_analyze` with the URL.
 4. Verify the page: right company, right program, and still open. Note the deadline and save the
    full job description text.
 
-If several pages could match, list the top 2–3 and ask the user to pick (`clarify`).
+If several pages could match, list the top 2–3 and ask the user to pick (`clarify`). If
+`result.confidence` is still below ~0.75 after visual analysis, say what the reel seems to
+advertise, show the best candidates, and ask which one before saving anything.
 
 ## 3. Save and confirm
 
@@ -62,9 +68,28 @@ Decide the tier from the apply page:
   ready-to-paste answers for the likely questions and a tailored cover letter. Set the status
   to `assisted`.
 
+## 5. Tell the user you're done
+
+The user is on their phone, so report the outcome in a few lines as soon as the work is finished:
+
+> Applied to **{company} — {role}** ✅
+> {apply_url}
+> Saved as `applied` in your tracker. Want me to prep you for the interview?
+
+For Tier 2, say the link and answers are ready and ask them to tell you once they've submitted,
+then update the status to `applied`. Never claim you applied when you only prepared the answers.
+
+## 6. Clean up
+
+Once you're finished with the reel — applied, assisted, skipped, or not an opportunity — call
+`reel_cleanup` with its URL. That deletes the downloaded video, extracted audio, sampled frames
+and cached analysis from disk. The tracker entry and its `reel_url` stay, so `/jobs` still works.
+
 ## Rules
 
 - Never invent experience, grades or facts that aren't in the profile.
 - Never submit anything without the user's explicit confirmation in this conversation.
+- Call `reel_cleanup` before your final reply about a reel, including when you skip it or it
+  turns out not to be an opportunity.
 - Stop and ask if the form asks for something sensitive that isn't in the profile
   (SSN, payment details, government ID): those are for the user to enter themselves.

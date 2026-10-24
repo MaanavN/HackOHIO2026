@@ -7,6 +7,7 @@ license: MIT
 tags: [jobs, instagram, career]
 provides_tools:
   - reel_analyze
+  - reel_cleanup
   - application_save
   - application_update
   - applications_list
@@ -16,7 +17,8 @@ provides_tools:
 provides_hooks:
   - pre_llm_call
 python_dependencies:
-  - "yt-dlp>=2025.1.1,<2027"
+  - "instaloader>=4.10,<5"
+  - "browser-cookie3>=0.19,<1"
   - "pypdf>=4.0,<7"
 config_schema:
   cookies_file:

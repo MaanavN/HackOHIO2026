@@ -51,7 +51,7 @@ Classifies each incoming message:
 
 Downloads the reel and extracts two kinds of information.
 
-**Download:** `yt-dlp`, with cookies from a secondary Instagram account. Saves the video plus `info.json`.
+**Download:** `instaloader`, with cookies from a secondary Instagram account. Saves the video plus `info.json`.
 
 **A. Metadata (runs first, cheap)**
 - Caption
@@ -131,7 +131,7 @@ Chat mode with the profile and the tracker's job descriptions in context:
 
 - Python 3.11+
 - Hermes Agent (agent loop, tools, memory, Telegram gateway)
-- `yt-dlp` for downloads, `ffmpeg` for audio and frames
+- `instaloader` for downloads, `ffmpeg` for audio and frames
 - Whisper (local or API) for transcription
 - An OCR library plus a vision LLM (or Gemini for whole-video input)
 - SQLite for tracking

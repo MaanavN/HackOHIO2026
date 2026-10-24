@@ -25,6 +25,21 @@ REEL_ANALYZE = {
     },
 }
 
+REEL_CLEANUP = {
+    "name": "reel_cleanup",
+    "description": (
+        "Delete the local working files for a reel — the downloaded video, extracted audio, "
+        "sampled frames and cached analysis. Call once you are finished with the reel: after "
+        "applying, assisting or skipping it, and when it turns out not to be an opportunity. "
+        "The tracker entry and its reel_url stay."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {"url": {"type": "string", "description": "The Instagram reel or post URL"}},
+        "required": ["url"],
+    },
+}
+
 _APP_FIELDS = {
     "company": {"type": "string"},
     "role": {"type": "string", "description": "Program or role name"},

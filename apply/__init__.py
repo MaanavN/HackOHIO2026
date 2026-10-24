@@ -18,6 +18,7 @@ def register(ctx):
 
     for schema, handler, emoji in (
         (schemas.REEL_ANALYZE, tools.reel_analyze, "🎬"),
+        (schemas.REEL_CLEANUP, tools.reel_cleanup, "🧹"),
         (schemas.APPLICATION_SAVE, tools.application_save, "📌"),
         (schemas.APPLICATION_UPDATE, tools.application_update, "📌"),
         (schemas.APPLICATIONS_LIST, tools.applications_list, "📋"),

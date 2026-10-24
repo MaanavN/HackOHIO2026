@@ -3,6 +3,7 @@
     venv/bin/python -m pytest tests
 """
 
+import json
 import shutil
 import subprocess
 import sys
@@ -12,7 +13,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from apply import commands, hooks, profile, tracker  # noqa: E402
+from apply import commands, hooks, profile, tools, tracker  # noqa: E402
 from apply.reel import download, media  # noqa: E402
 
 
@@ -28,6 +29,23 @@ def test_reel_url_detection():
     assert download.reel_id("https://instagram.com/p/XYZ789/") == "XYZ789"
     assert download.reel_id("https://www.instagram.com/someuser/reel/QQQ111/") == "QQQ111"
     assert download.reel_id("https://youtube.com/shorts/abc") is None
+
+
+def test_reel_cleanup_removes_workdir(data_dir):
+    reel_dir = data_dir / "reels" / "ABC123"
+    reel_dir.mkdir(parents=True)
+    (reel_dir / "video.mp4").write_bytes(b"video")
+    (reel_dir / "analysis.json").write_text("{}")
+
+    result = json.loads(tools.reel_cleanup({"url": "https://www.instagram.com/reel/ABC123/"}))
+    assert result["removed"] is True
+    assert not reel_dir.exists()
+
+    again = json.loads(tools.reel_cleanup({"url": "https://www.instagram.com/reel/ABC123/"}))
+    assert again["removed"] is False
+
+    invalid = json.loads(tools.reel_cleanup({"url": "https://example.com/video"}))
+    assert "error" in invalid
 
 
 def test_tracker_save_dedupes_and_updates():

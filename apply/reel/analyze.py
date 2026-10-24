@@ -71,6 +71,8 @@ def _text_block(meta: dict, transcript: str) -> str:
     return (
         f"Reel: {meta['url']}\n"
         f"Posted by: {meta.get('uploader')} (@{meta.get('uploader_id')}) on {meta.get('upload_date')}\n"
+        f"Uploader bio: {meta.get('uploader_biography') or '(none)'}\n"
+        f"Uploader link: {meta.get('uploader_bio_url') or '(none)'}\n"
         f"Caption:\n{meta.get('caption') or '(empty)'}\n\n"
         f"Transcript:\n{transcript or '(none)'}\n\n"
         f"Top comments:\n{comments}"
@@ -116,7 +118,7 @@ def analyze(url: str, force_visual: bool = False, refresh: bool = False) -> dict
     )
     reel_dir = Path(meta["dir"])
     video = Path(meta["video_path"])
-    notes = []
+    notes = list(meta.get("notes") or [])
 
     audio = media.extract_audio(video, reel_dir)
     transcript, note = _transcribe(audio)

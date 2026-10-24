@@ -77,6 +77,13 @@ def import_memory(raw_args: str) -> str:
     )
 
 
+def resume(raw_args: str) -> str:
+    return (
+        "Send me your resume as a PDF, DOCX, TXT or MD file and I'll import it into your profile. "
+        "Sending a newer one replaces it; /me shows what I have so far."
+    )
+
+
 # /status, /update and /profile are built-in Hermes commands, so these use other names.
 COMMANDS = (
     ("jobs", jobs, "List tracked applications", "[status]"),
@@ -84,4 +91,5 @@ COMMANDS = (
     ("setstatus", update, "Change an application's status", "<company or id> <status>"),
     ("me", show_profile, "Show your stored candidate profile", ""),
     ("import_memory", import_memory, "Get a prompt to import what other AIs know about you", ""),
+    ("resume", resume, "How to add or replace your resume", ""),
 )
