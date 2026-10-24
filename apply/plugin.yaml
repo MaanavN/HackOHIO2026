@@ -1,0 +1,29 @@
+name: apply
+version: 0.1.0
+manifest_version: 2
+api_version: 1
+description: Turn Instagram reels about jobs/internships into applications, track them, and coach for interviews
+license: MIT
+tags: [jobs, instagram, career]
+provides_tools:
+  - reel_analyze
+  - application_save
+  - application_update
+  - applications_list
+  - profile_get
+  - profile_update
+  - resume_import
+provides_hooks:
+  - pre_llm_call
+python_dependencies:
+  - "yt-dlp>=2025.1.1,<2027"
+  - "pypdf>=4.0,<7"
+config_schema:
+  cookies_file:
+    type: str
+    default: ""
+    description: Path to a Netscape cookies.txt for a (secondary) logged-in Instagram account
+  cookies_from_browser:
+    type: str
+    default: ""
+    description: Browser to read Instagram cookies from instead (chrome, firefox, safari, ...)
