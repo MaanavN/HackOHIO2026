@@ -31,6 +31,16 @@ def test_reel_url_detection():
     assert download.reel_id("https://youtube.com/shorts/abc") is None
 
 
+def test_loader_writes_into_absolute_out_dir(tmp_path):
+    """Instaloader sanitises "/" in substituted patterns, so an absolute {target} used
+    to become a relative "∕tmp∕…" directory in the cwd and the download was lost."""
+    out_dir = tmp_path / "reels" / "ABC123"
+    loader, note = download._loader(None, None, out_dir)
+    assert note and "anonymously" in note
+    assert loader.dirname_pattern == str(out_dir)
+    assert "{target}" not in loader.dirname_pattern
+
+
 def test_reel_cleanup_removes_workdir(data_dir):
     reel_dir = data_dir / "reels" / "ABC123"
     reel_dir.mkdir(parents=True)

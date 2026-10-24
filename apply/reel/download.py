@@ -78,14 +78,20 @@ def _cookies_from_browser(browser: str) -> dict:
     return cookies
 
 
-def _loader(cookies_file: str | None, cookies_browser: str | None):
-    """An Instaloader with the user's (secondary-account) session applied, plus a note if it failed."""
+def _loader(cookies_file: str | None, cookies_browser: str | None, out_dir: Path):
+    """An Instaloader writing into out_dir, with the user's (secondary-account) session applied."""
     try:
         from instaloader import Instaloader
     except ImportError as e:
         raise DownloadError("instaloader is not installed (pip install instaloader)") from e
 
     loader = Instaloader(
+        # Instaloader builds the directory from dirname_pattern and sanitises every
+        # substituted value, replacing "/" with "∕". With the default "{target}" an
+        # absolute target therefore becomes a relative directory named "∕tmp∕…" in
+        # the current working directory, and the video silently lands outside out_dir.
+        # A literal pattern with no placeholders is used verbatim.
+        dirname_pattern=str(out_dir),
         download_pictures=False,
         download_videos=True,
         download_video_thumbnails=False,
@@ -146,7 +152,7 @@ def download(url: str, out_dir: Path, cookies_file: str | None = None, cookies_b
     target = Path(out_dir) / rid
     target.mkdir(parents=True, exist_ok=True)
 
-    loader, note = _loader(cookies_file, cookies_browser)
+    loader, note = _loader(cookies_file, cookies_browser, target)
     notes = [note] if note else []
 
     try:
@@ -160,7 +166,7 @@ def download(url: str, out_dir: Path, cookies_file: str | None = None, cookies_b
     videos = sorted(target.glob("*.mp4"))
     if not videos:
         raise DownloadError(
-            "no video file was written — Instagram usually refuses anonymous downloads."
+            f"no video file was written to {target} — Instagram usually refuses anonymous downloads."
             " Set the plugin's cookies_file or cookies_from_browser setting (use a secondary Instagram account)."
         )
 
