@@ -8,6 +8,8 @@ import re
 import shutil
 from pathlib import Path
 
+import requests
+
 REEL_URL_RE = re.compile(r"https?://(?:www\.)?instagram\.com/(?:[\w.]+/)?(?:reel|reels|p|tv)/([\w-]+)[^\s]*", re.I)
 
 MAX_COMMENTS = 30
@@ -122,6 +124,32 @@ def _loader(cookies_file: str | None, cookies_browser: str | None, out_dir: Path
     return loader, None
 
 
+def _video_url(post) -> str | None:
+    """Direct CDN URL for the post's video, including carousels that carry one."""
+    if post.video_url:
+        return post.video_url
+    if post.typename == "GraphSidecar":
+        for node in post.get_sidecar_nodes():
+            if node.is_video and node.video_url:
+                return node.video_url
+    return None
+
+
+def _fetch_video(url: str, dest: Path, chunk_size: int = 64 * 1024) -> None:
+    """Stream the video from Instagram's CDN into dest."""
+    try:
+        response = requests.get(url, stream=True, timeout=30)
+    except requests.RequestException as e:
+        raise DownloadError(f"could not reach Instagram's video CDN: {e}") from e
+    with response:
+        if response.status_code != 200:
+            raise DownloadError(f"Instagram returned HTTP {response.status_code} for the video")
+        with dest.open("wb") as file:
+            for chunk in response.iter_content(chunk_size=chunk_size):
+                if chunk:
+                    file.write(chunk)
+
+
 def _friendly(error: Exception) -> str:
     message = str(error) or type(error).__name__
     lowered = message.lower()
@@ -155,18 +183,19 @@ def download(url: str, out_dir: Path, cookies_file: str | None = None, cookies_b
     loader, note = _loader(cookies_file, cookies_browser, target)
     notes = [note] if note else []
 
+    video = target / "reel.mp4"
     try:
         post = Post.from_shortcode(loader.context, rid)
-        if not post.is_video and post.typename != "GraphSidecar":
+        video_url = _video_url(post)
+        if not video_url:
             raise DownloadError("that post has no video; Apply needs a reel")
-        loader.download_post(post, target=str(target))
+        _fetch_video(video_url, video)
     except InstaloaderException as e:
         raise DownloadError(_friendly(e)) from e
 
-    videos = sorted(target.glob("*.mp4"))
-    if not videos:
+    if not video.is_file() or not video.stat().st_size:
         raise DownloadError(
-            f"no video file was written to {target} — Instagram usually refuses anonymous downloads."
+            f"no video file was written to {video} — Instagram usually refuses anonymous downloads."
             " Set the plugin's cookies_file or cookies_from_browser setting (use a secondary Instagram account)."
         )
 
@@ -203,7 +232,7 @@ def download(url: str, out_dir: Path, cookies_file: str | None = None, cookies_b
         "id": rid,
         "url": url,
         "dir": str(target),
-        "video_path": str(videos[0]),
+        "video_path": str(video),
         "caption": post.caption or "",
         "title": post.title,
         "uploader": full_name or owner,

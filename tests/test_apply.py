@@ -9,12 +9,31 @@ import subprocess
 import sys
 from pathlib import Path
 
+import instaloader
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from apply import commands, hooks, profile, tools, tracker  # noqa: E402
 from apply.reel import download, media  # noqa: E402
+
+
+class _FakePost:
+    video_url = "https://scontent.example/v.mp4"
+    is_video = True
+    typename = "GraphVideo"
+    comments = 0
+    caption = "comment LINK"
+    title = None
+    owner_username = "creator"
+    video_duration = 12.0
+    likes = 5
+    date_utc = None
+
+    class owner_profile:
+        biography = "bio"
+        external_url = "https://creator.example"
+        full_name = "Creator"
 
 
 @pytest.fixture(autouse=True)
@@ -39,6 +58,51 @@ def test_loader_writes_into_absolute_out_dir(tmp_path):
     assert note and "anonymously" in note
     assert loader.dirname_pattern == str(out_dir)
     assert "{target}" not in loader.dirname_pattern
+
+
+class _FakeResponse:
+    def __init__(self, chunks, status_code=200):
+        self._chunks = chunks
+        self.status_code = status_code
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def iter_content(self, chunk_size):
+        return iter(self._chunks)
+
+
+def test_download_streams_the_post_video_url(tmp_path, monkeypatch):
+    """The reel video comes from post.video_url, streamed to <id>/reel.mp4."""
+    requested = {}
+
+    def fake_get(url, stream=False, timeout=None):
+        requested["url"] = url
+        assert stream is True
+        return _FakeResponse([b"video", b"", b"bytes"])
+
+    monkeypatch.setattr(download.requests, "get", fake_get)
+    monkeypatch.setattr(instaloader.Post, "from_shortcode", classmethod(lambda cls, ctx, rid: _FakePost()))
+
+    meta = download.download("https://www.instagram.com/reel/ABC123/", tmp_path / "reels")
+    video = tmp_path / "reels" / "ABC123" / "reel.mp4"
+    assert requested["url"] == _FakePost.video_url
+    assert video.read_bytes() == b"videobytes"
+    assert meta["video_path"] == str(video)
+    assert meta["caption"] == "comment LINK"
+    assert json.loads((video.parent / "info.json").read_text())["id"] == "ABC123"
+
+
+def test_download_reports_a_failed_video_fetch(tmp_path, monkeypatch):
+    monkeypatch.setattr(download.requests, "get", lambda *a, **k: _FakeResponse([b""], status_code=403))
+    monkeypatch.setattr(instaloader.Post, "from_shortcode", classmethod(lambda cls, ctx, rid: _FakePost()))
+
+    with pytest.raises(download.DownloadError) as err:
+        download.download("https://www.instagram.com/reel/ABC123/", tmp_path / "reels")
+    assert "403" in str(err.value)
 
 
 def test_reel_cleanup_removes_workdir(data_dir):
