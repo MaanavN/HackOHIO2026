@@ -1,4 +1,4 @@
-"""Apply: a Hermes Agent plugin that turns Instagram job reels into applications.
+"""D.S.T.A: a Hermes Agent plugin that turns Instagram job reels into applications.
 
 See SPEC.md at the repository root for the design.
 """

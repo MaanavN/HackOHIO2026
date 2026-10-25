@@ -1,4 +1,4 @@
-# HackOHIO2026: Apply
+# HackOHIO2026: D.S.T.A
 
 Send an Instagram reel about a job or internship to a Telegram bot. It figures out which
 opportunity the reel is about, finds the real application page, and helps you apply. It also
@@ -12,7 +12,7 @@ Telegram gateway, web search and browser tools; the plugin adds the job-specific
 
 | Piece | File | What it does |
 |---|---|---|
-| Reel pipeline | `apply/reel/` | instaloader download → caption, uploader bio + link, comments → audio transcript → (if needed) scene-change frames → vision model → structured opportunity |
+| Reel pipeline | `apply/reel/` | instaloader video download → sampled frames + audio transcript → selected vision model → official application page |
 | Router | `apply/hooks.py` | Spots reel links and resumes in each message and points the agent at the right skill; injects a short profile summary on the first turn |
 | Profile | `apply/profile.py`, `apply/resume.py` | Resume import (PDF/DOCX/TXT), memory import, missing-field tracking |
 | Tracker | `apply/tracker.py` | SQLite table of applications and their status |
@@ -41,7 +41,7 @@ accounts, enters passwords or solves CAPTCHAs: those applications get ready-to-p
 4. Let instaloader use an Instagram login. Log into a **secondary** Instagram account in a browser,
    then set the plugin's `cookies_from_browser` setting (e.g. `chrome`) under
    `plugins.entries.apply.settings` in `~/.hermes/config.yaml`, or point `cookies_file` at a
-   Netscape cookies.txt. Without a login Instagram often refuses the video and never serves comments.
+   Netscape cookies.txt. A login may be needed for restricted videos.
 5. Set up speech-to-text for transcripts (any Hermes STT provider, e.g. `pip install faster-whisper` for free local transcription).
 6. Connect Telegram by following Hermes's Telegram guide, then start the gateway.
 

@@ -1,10 +1,10 @@
-# Apply — Spec
+# D.S.T.A — Spec
 
 An AI agent you message with Instagram reel links. It figures out which job/internship opportunity the reel is about, finds the real application page, and applies for you. It also doubles as an interview coach that knows your profile.
 
 ## Problem
 
-Many Instagram reels advertise opportunities with "comment LINK to get the application." The auto-DM that sends the link usually stops working after a while, so people comment and never get it. Apply recovers the opportunity from the reel itself and handles the application.
+Many Instagram reels advertise opportunities with "comment LINK to get the application." The auto-DM that sends the link usually stops working after a while, so people comment and never get it. D.S.T.A recovers the opportunity from the reel itself and handles the application.
 
 ## Scope
 

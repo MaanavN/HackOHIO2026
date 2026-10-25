@@ -197,3 +197,47 @@ def test_frame_sampling(tmp_path):
     frames = media.extract_frames(video, tmp_path)
     assert 3 <= len(frames) <= media.MAX_FRAMES
     assert media.extract_audio(video, tmp_path).exists()
+
+
+def test_download_does_not_fetch_profile_or_comments(tmp_path, monkeypatch):
+    class VideoOnlyPost(_FakePost):
+        @property
+        def owner_profile(self):
+            pytest.fail("Downloading a video must not fetch the uploader profile")
+
+        @property
+        def comments(self):
+            pytest.fail("Downloading a video must not fetch comments")
+
+    monkeypatch.setattr(instaloader.Post, "from_shortcode", classmethod(lambda cls, ctx, rid: VideoOnlyPost()))
+    monkeypatch.setattr(download.requests, "get", lambda *a, **k: _FakeResponse([b"video"]))
+    assert download.download("https://www.instagram.com/reel/ABC123/", tmp_path)["comments"] == []
+
+
+def test_analysis_always_watches_frames_and_ignores_old_cache(tmp_path, monkeypatch):
+    from apply.reel import analyze
+
+    reel_dir = tmp_path / "reels" / "ABC123"
+    reel_dir.mkdir(parents=True)
+    (reel_dir / "analysis.json").write_text('{"result": {"company": "Old", "confidence": 1}}')
+    frame = reel_dir / "frame.jpg"
+    frame.write_bytes(b"frame")
+    meta = {"id": "ABC123", "url": "https://instagram.com/reel/ABC123/",
+            "dir": str(reel_dir), "video_path": str(reel_dir / "reel.mp4"), "comments": []}
+    monkeypatch.setattr(analyze.dl, "download", lambda *a, **k: meta)
+    monkeypatch.setattr(analyze.media, "extract_audio", lambda *a: None)
+    monkeypatch.setattr(analyze.media, "extract_frames", lambda *a: [frame])
+    monkeypatch.setattr(analyze.host, "llm", lambda: object())
+    calls = []
+
+    def watch(text, frames):
+        calls.append(frames)
+        assert frames == [frame]
+        return {"company": "Seen on video", "confidence": 1}
+
+    monkeypatch.setattr(analyze, "_ask", watch)
+    result = analyze.analyze(meta["url"])
+    assert result["result"]["company"] == "Seen on video"
+    assert len(calls) == 1
+    assert analyze.analyze(meta["url"])["cached"] is True
+    assert len(calls) == 1

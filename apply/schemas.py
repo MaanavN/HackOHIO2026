@@ -6,8 +6,8 @@ REEL_ANALYZE = {
     "name": "reel_analyze",
     "description": (
         "Download an Instagram reel and work out which job/internship/program it advertises. "
-        "Reads the caption, uploader, comments and audio transcript first; if that isn't conclusive "
-        "it also samples frames and reads on-screen text, logos and URLs with a vision model. "
+        "Always watches sampled video frames with the selected vision model and the audio transcript; "
+        "reads on-screen text, logos and application URLs. "
         "Returns company, program, deadline, URLs seen and suggested web searches for the official "
         "application page. Call this whenever the user sends an instagram.com/reel/ or /p/ link."
     ),
@@ -17,7 +17,7 @@ REEL_ANALYZE = {
             "url": {"type": "string", "description": "The Instagram reel or post URL"},
             "force_visual": {
                 "type": "boolean",
-                "description": "Also analyse frames even if the metadata looks conclusive",
+                "description": "Reanalyse the video frames (visual analysis is always enabled)",
             },
             "refresh": {"type": "boolean", "description": "Ignore a cached analysis of this reel"},
         },

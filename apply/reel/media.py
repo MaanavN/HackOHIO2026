@@ -77,7 +77,11 @@ def extract_frames(video: Path, out_dir: Path, max_frames: int = MAX_FRAMES) -> 
             "-fps_mode", "vfr", "-q:v", "3",
             str(frames_dir / "time_%03d.jpg"),
         )
-        frames = sorted(frames_dir.glob("*.jpg"))
+        timed_frames = sorted(frames_dir.glob("time_*.jpg"))
+        if timed_frames:
+            for frame in frames:
+                frame.unlink()
+            frames = timed_frames
 
     keep = _even_subset(frames, max_frames)
     for frame in set(frames) - set(keep):

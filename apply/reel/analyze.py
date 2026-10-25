@@ -1,8 +1,4 @@
-"""Turn a reel into a structured opportunity (SPEC §3).
-
-Stage A uses metadata + transcript only (cheap). Stage B adds sampled frames
-for the vision model, and only runs when stage A isn't confident.
-"""
+"""Watch a downloaded reel using sampled video frames and its audio transcript."""
 
 import json
 from pathlib import Path
@@ -12,7 +8,7 @@ from ..storage import data_dir
 from . import download as dl
 from . import media
 
-CONFIDENT = 0.75
+ANALYSIS_VERSION = 2
 
 OPPORTUNITY_SCHEMA = {
     "type": "object",
@@ -43,13 +39,12 @@ OPPORTUNITY_SCHEMA = {
     "required": ["is_opportunity", "company", "program", "confidence", "evidence", "search_queries", "urls_seen"],
 }
 
-_INSTRUCTIONS = """You analyse an Instagram reel that may advertise a job, internship or other opportunity.
-These reels often say "comment LINK and I'll DM you" and hide the actual link, so your job is to work out
-WHICH opportunity it is so it can be searched for. Use every source given: caption, transcript, comments
-(other users often post the real link or name the program), and frames if present (read on-screen text,
-logos, screenshots of application pages, URLs in the background). Do not invent details; use an empty string
-when something is unknown. Put every URL or domain you see in urls_seen. Write search_queries that would find the official
-application page (company careers site or ATS), not news articles."""
+_INSTRUCTIONS = """Watch these chronological frames from an Instagram reel and read its audio transcript.
+Identify the advertised job, internship or program from what is visible and spoken. Read on-screen
+text, logos, deadlines and application URLs. The caption is supplementary context only.
+Do not invent details; use empty strings for unknown facts. Return every visible or spoken URL in
+urls_seen and 2-4 search_queries to locate the official application page. Explain the visual/audio
+evidence and indicate uncertainty when the reel does not identify a unique opportunity."""
 
 
 def _transcribe(audio: Path | None) -> tuple[str, str | None]:
@@ -67,15 +62,10 @@ def _transcribe(audio: Path | None) -> tuple[str, str | None]:
 
 
 def _text_block(meta: dict, transcript: str) -> str:
-    comments = "\n".join(f"- @{c['author']}: {c['text']}" for c in meta["comments"]) or "(none fetched)"
     return (
         f"Reel: {meta['url']}\n"
-        f"Posted by: {meta.get('uploader')} (@{meta.get('uploader_id')}) on {meta.get('upload_date')}\n"
-        f"Uploader bio: {meta.get('uploader_biography') or '(none)'}\n"
-        f"Uploader link: {meta.get('uploader_bio_url') or '(none)'}\n"
-        f"Caption:\n{meta.get('caption') or '(empty)'}\n\n"
-        f"Transcript:\n{transcript or '(none)'}\n\n"
-        f"Top comments:\n{comments}"
+        f"Caption (supplementary):\n{meta.get('caption') or '(empty)'}\n\n"
+        f"Audio transcript:\n{transcript or '(unavailable; use the video frames)'}"
     )
 
 
@@ -91,7 +81,8 @@ def _ask(text: str, frames: list[Path]) -> dict:
         json_schema=OPPORTUNITY_SCHEMA,
         schema_name="reel_opportunity",
         temperature=0.0,
-        max_tokens=1500,
+        max_tokens=4000,
+        timeout=120,
         purpose="apply.reel_analyze",
     )
     if result.parsed is None:
@@ -99,16 +90,14 @@ def _ask(text: str, frames: list[Path]) -> dict:
     return result.parsed
 
 
-def _confident(result: dict) -> bool:
-    return bool(result.get("company")) and (result.get("confidence") or 0) >= CONFIDENT
-
-
 def analyze(url: str, force_visual: bool = False, refresh: bool = False) -> dict:
     reels_dir = data_dir() / "reels"
     rid = dl.reel_id(url)
     cache = reels_dir / rid / "analysis.json" if rid else None
     if cache and cache.exists() and not refresh and not force_visual:
-        return {**json.loads(cache.read_text()), "cached": True}
+        cached = json.loads(cache.read_text())
+        if cached.get("analysis_version") == ANALYSIS_VERSION:
+            return {**cached, "cached": True}
 
     meta = dl.download(
         url,
@@ -125,7 +114,7 @@ def analyze(url: str, force_visual: bool = False, refresh: bool = False) -> dict
     if note:
         notes.append(note)
 
-    out = {"metadata": meta, "transcript": transcript, "frames": [], "result": None, "stages": ["metadata"]}
+    out = {"metadata": meta, "transcript": transcript, "frames": [], "result": None, "stages": ["download", "transcript"], "analysis_version": ANALYSIS_VERSION}
     text = _text_block(meta, transcript)
 
     if host.llm() is None:
@@ -135,12 +124,12 @@ def analyze(url: str, force_visual: bool = False, refresh: bool = False) -> dict
         out["notes"] = notes
         return out
 
-    result = _ask(text, [])
-    if force_visual or not _confident(result):
-        frames = media.extract_frames(video, reel_dir)
-        out["frames"] = [str(p) for p in frames]
-        out["stages"].append("frames")
-        result = _ask(text, frames)
+    frames = media.extract_frames(video, reel_dir)
+    if not frames:
+        raise RuntimeError("no video frames could be extracted; cannot watch the reel")
+    out["frames"] = [str(p) for p in frames]
+    out["stages"].append("frames")
+    result = _ask(text, frames)
 
     out["result"] = result
     out["notes"] = notes
